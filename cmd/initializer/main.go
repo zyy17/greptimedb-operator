@@ -90,6 +90,18 @@ func main() {
 		datanodeConfig.StorageConfig.DataDir = ""
 	}
 
+	// FIXME(zyy17): Set CHECKPOINT_ON_STARTUP and it's just work around.
+	checkOnStartup := os.Getenv("CHECKPOINT_ON_STARTUP")
+	if len(checkOnStartup) == 0 {
+		datanodeConfig.Manifest.CheckpointOnStartup = false
+	} else {
+		result, err := strconv.ParseBool(checkOnStartup)
+		if err != nil {
+			datanodeConfig.Manifest.CheckpointOnStartup = false
+		}
+		datanodeConfig.Manifest.CheckpointOnStartup = result
+	}
+
 	if opts.storageType == "Local" {
 		datanodeConfig.StorageConfig.DataDir = opts.localStorageDir
 	}
@@ -122,6 +134,8 @@ func main() {
 	if err := os.WriteFile(opts.configPath, buf.Bytes(), 0644); err != nil {
 		klog.Fatalf("write data config failed, err '%v'", err)
 	}
+
+	klog.Infof("Config: %s", buf.Bytes())
 
 	klog.Infof("Allocate node-id '%d' successfully and write it into file '%s'", nodeID, opts.configPath)
 }

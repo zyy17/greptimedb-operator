@@ -23,6 +23,12 @@ type StorageConfig struct {
 	SecretAccessKey string `toml:"secret_access_key"`
 	Endpoint        string `toml:"endpoint"`
 	Region          string `toml:"region"`
+
+	Manifest Manifest `toml:"manifest"`
+}
+
+type Manifest struct {
+	CheckpointOnStartup bool `toml:"checkpoint_on_startup"`
 }
 
 type MetaClientOptions struct {

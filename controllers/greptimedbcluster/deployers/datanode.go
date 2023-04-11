@@ -417,6 +417,27 @@ func (d *DatanodeDeployer) generatePodTemplateSpec(cluster *v1alpha1.GreptimeDBC
 }
 
 func (d *DatanodeDeployer) generateInitializer(cluster *v1alpha1.GreptimeDBCluster) *corev1.Container {
+	// FIXME(zyy17): It's just a workaround, will delete in the future.
+	env := []corev1.EnvVar{
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		{
+			Name: "POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+	}
+	env = append(env, cluster.Spec.Datanode.Template.MainContainer.Env...)
+
 	initializer := &corev1.Container{
 		Name:  "greptimedb-initializer",
 		Image: cluster.Spec.Initializer.Image,
@@ -437,24 +458,7 @@ func (d *DatanodeDeployer) generateInitializer(cluster *v1alpha1.GreptimeDBClust
 			},
 		},
 		// TODO(zyy17): the datanode don't support to accept hostname.
-		Env: []corev1.EnvVar{
-			{
-				Name: "POD_IP",
-				ValueFrom: &corev1.EnvVarSource{
-					FieldRef: &corev1.ObjectFieldSelector{
-						FieldPath: "status.podIP",
-					},
-				},
-			},
-			{
-				Name: "POD_NAME",
-				ValueFrom: &corev1.EnvVarSource{
-					FieldRef: &corev1.ObjectFieldSelector{
-						FieldPath: "metadata.name",
-					},
-				},
-			},
-		},
+		Env: env,
 	}
 
 	if cluster.Spec.StorageProvider != nil {
