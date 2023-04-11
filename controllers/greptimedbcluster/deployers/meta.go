@@ -17,6 +17,7 @@ package deployers
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
 	"time"
 
@@ -340,12 +341,18 @@ func buildEtcdMaintenance(etcdEndpoints []string) (clientv3.Maintenance, error) 
 }
 
 func (d *MetaDeployer) buildMetaArgs(cluster *v1alpha1.GreptimeDBCluster) []string {
-	return []string{
+	args := []string{
 		"metasrv", "start",
 		"--bind-addr", fmt.Sprintf("0.0.0.0:%d", cluster.Spec.Meta.ServicePort),
 		"--server-addr", fmt.Sprintf("%s.%s:%d", d.ResourceName(cluster.Name, v1alpha1.MetaComponentKind), cluster.Namespace, cluster.Spec.Meta.ServicePort),
 		"--store-addr", cluster.Spec.Meta.EtcdEndpoints[0],
 	}
+
+	if len(cluster.Spec.Meta.Config) > 0 {
+		args = append(args, "--config-file", path.Join(DefaultConfigPath, DefaultConfigName))
+	}
+
+	return args
 }
 
 func (d *MetaDeployer) generatePodTemplateSpec(cluster *v1alpha1.GreptimeDBCluster) *corev1.PodTemplateSpec {
