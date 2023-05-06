@@ -155,6 +155,80 @@ type SlimPodSpec struct {
 	// If specified, additional containers will be added to the pod as sidecar containers.
 	// +optional
 	AdditionalContainers []corev1.Container `json:"additionalContainers,omitempty"`
+
+	// List of volumes that can be mounted by containers belonging to the pod.
+	// +optional
+	Volumes []Volume `json:"volumes,omitempty"`
+}
+
+// Volume represents a named volume in a pod that may be accessed by any container in the pod.
+type Volume struct {
+	// name of the volume.
+	// Must be a DNS_LABEL and unique within the pod.
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
+	// volumeSource represents the location and type of the mounted volume.
+	// If not specified, the Volume is implied to be an EmptyDir.
+	// This implied behavior is deprecated and will be removed in a future version.
+	VolumeSource `json:",inline" protobuf:"bytes,2,opt,name=volumeSource"`
+}
+
+type VolumeSource struct {
+	// secret represents a secret that should populate this volume.
+	// More info: https://kubernetes.io/docs/concepts/storage/volumes#secret
+	// +optional
+	Secret *SecretVolumeSource `json:"secret,omitempty"`
+}
+
+// The contents of the target Secret's Data field will be presented in a volume
+// as files using the keys in the Data field as the file names.
+// Secret volumes support ownership management and SELinux relabeling.
+type SecretVolumeSource struct {
+	// secretName is the name of the secret in the pod's namespace to use.
+	// More info: https://kubernetes.io/docs/concepts/storage/volumes#secret
+	// +optional
+	SecretName string `json:"secretName,omitempty" protobuf:"bytes,1,opt,name=secretName"`
+	// items If unspecified, each key-value pair in the Data field of the referenced
+	// Secret will be projected into the volume as a file whose name is the
+	// key and content is the value. If specified, the listed keys will be
+	// projected into the specified paths, and unlisted keys will not be
+	// present. If a key is specified which is not present in the Secret,
+	// the volume setup will error unless it is marked optional. Paths must be
+	// relative and may not contain the '..' path or start with '..'.
+	// +optional
+	Items []KeyToPath `json:"items,omitempty" protobuf:"bytes,2,rep,name=items"`
+	// defaultMode is Optional: mode bits used to set permissions on created files by default.
+	// Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
+	// YAML accepts both octal and decimal values, JSON requires decimal values
+	// for mode bits. Defaults to 0644.
+	// Directories within the path are not affected by this setting.
+	// This might be in conflict with other options that affect the file
+	// mode, like fsGroup, and the result can be other mode bits set.
+	// +optional
+	DefaultMode *int32 `json:"defaultMode,omitempty" protobuf:"bytes,3,opt,name=defaultMode"`
+	// optional field specify whether the Secret or its keys must be defined
+	// +optional
+	Optional *bool `json:"optional,omitempty" protobuf:"varint,4,opt,name=optional"`
+}
+
+// Maps a string key to a path within a volume.
+type KeyToPath struct {
+	// key is the key to project.
+	Key string `json:"key" protobuf:"bytes,1,opt,name=key"`
+
+	// path is the relative path of the file to map the key to.
+	// May not be an absolute path.
+	// May not contain the path element '..'.
+	// May not start with the string '..'.
+	Path string `json:"path" protobuf:"bytes,2,opt,name=path"`
+	// mode is Optional: mode bits used to set permissions on this file.
+	// Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
+	// YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.
+	// If not specified, the volume defaultMode will be used.
+	// This might be in conflict with other options that affect the file
+	// mode, like fsGroup, and the result can be other mode bits set.
+	// +optional
+	Mode *int32 `json:"mode,omitempty" protobuf:"varint,3,opt,name=mode"`
 }
 
 // MainContainerSpec describes the specification of the main container of a pod.
@@ -234,6 +308,34 @@ type MainContainerSpec struct {
 	// ImagePullPolicy field is from 'corev1.Container.ImagePullPolicy'.
 	// +optional
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+
+	// Pod volumes to mount into the container's filesystem.
+	// Cannot be updated.
+	// +optional
+	VolumeMounts []VolumeMount `json:"volumeMounts,omitempty"`
+}
+
+// VolumeMount describes a mounting of a Volume within a container.
+type VolumeMount struct {
+	// This must match the Name of a Volume.
+	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
+	// Mounted read-only if true, read-write otherwise (false or unspecified).
+	// Defaults to false.
+	// +optional
+	ReadOnly bool `json:"readOnly,omitempty" protobuf:"varint,2,opt,name=readOnly"`
+	// Path within the container at which the volume should be mounted.  Must
+	// not contain ':'.
+	MountPath string `json:"mountPath" protobuf:"bytes,3,opt,name=mountPath"`
+	// Path within the volume from which the container's volume should be mounted.
+	// Defaults to "" (volume's root).
+	// +optional
+	SubPath string `json:"subPath,omitempty" protobuf:"bytes,4,opt,name=subPath"`
+	// Expanded path within the volume from which the container's volume should be mounted.
+	// Behaves similarly to SubPath but environment variable references $(VAR_NAME) are expanded using the container's environment.
+	// Defaults to "" (volume's root).
+	// SubPathExpr and SubPath are mutually exclusive.
+	// +optional
+	SubPathExpr string `json:"subPathExpr,omitempty" protobuf:"bytes,6,opt,name=subPathExpr"`
 }
 
 // PodTemplateSpec defines the template for a pod of cluster.
