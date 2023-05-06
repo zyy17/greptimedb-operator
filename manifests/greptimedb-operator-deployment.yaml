@@ -1955,6 +1955,24 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      volumeMounts:
+                        items:
+                          properties:
+                            mountPath:
+                              type: string
+                            name:
+                              type: string
+                            readOnly:
+                              type: boolean
+                            subPath:
+                              type: string
+                            subPathExpr:
+                              type: string
+                          required:
+                          - mountPath
+                          - name
+                          type: object
+                        type: array
                       workingDir:
                         type: string
                     type: object
@@ -1971,6 +1989,40 @@ spec:
                   terminationGracePeriodSeconds:
                     format: int64
                     type: integer
+                  volumes:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        secret:
+                          properties:
+                            defaultMode:
+                              format: int32
+                              type: integer
+                            items:
+                              items:
+                                properties:
+                                  key:
+                                    type: string
+                                  mode:
+                                    format: int32
+                                    type: integer
+                                  path:
+                                    type: string
+                                required:
+                                - key
+                                - path
+                                type: object
+                              type: array
+                            optional:
+                              type: boolean
+                            secretName:
+                              type: string
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
                 type: object
               datanode:
                 properties:
@@ -3902,6 +3954,24 @@ spec:
                                   x-kubernetes-int-or-string: true
                                 type: object
                             type: object
+                          volumeMounts:
+                            items:
+                              properties:
+                                mountPath:
+                                  type: string
+                                name:
+                                  type: string
+                                readOnly:
+                                  type: boolean
+                                subPath:
+                                  type: string
+                                subPathExpr:
+                                  type: string
+                              required:
+                              - mountPath
+                              - name
+                              type: object
+                            type: array
                           workingDir:
                             type: string
                         type: object
@@ -3918,6 +3988,40 @@ spec:
                       terminationGracePeriodSeconds:
                         format: int64
                         type: integer
+                      volumes:
+                        items:
+                          properties:
+                            name:
+                              type: string
+                            secret:
+                              properties:
+                                defaultMode:
+                                  format: int32
+                                  type: integer
+                                items:
+                                  items:
+                                    properties:
+                                      key:
+                                        type: string
+                                      mode:
+                                        format: int32
+                                        type: integer
+                                      path:
+                                        type: string
+                                    required:
+                                    - key
+                                    - path
+                                    type: object
+                                  type: array
+                                optional:
+                                  type: boolean
+                                secretName:
+                                  type: string
+                              type: object
+                          required:
+                          - name
+                          type: object
+                        type: array
                     type: object
                 required:
                 - replicas
@@ -5851,6 +5955,24 @@ spec:
                                   x-kubernetes-int-or-string: true
                                 type: object
                             type: object
+                          volumeMounts:
+                            items:
+                              properties:
+                                mountPath:
+                                  type: string
+                                name:
+                                  type: string
+                                readOnly:
+                                  type: boolean
+                                subPath:
+                                  type: string
+                                subPathExpr:
+                                  type: string
+                              required:
+                              - mountPath
+                              - name
+                              type: object
+                            type: array
                           workingDir:
                             type: string
                         type: object
@@ -5867,6 +5989,40 @@ spec:
                       terminationGracePeriodSeconds:
                         format: int64
                         type: integer
+                      volumes:
+                        items:
+                          properties:
+                            name:
+                              type: string
+                            secret:
+                              properties:
+                                defaultMode:
+                                  format: int32
+                                  type: integer
+                                items:
+                                  items:
+                                    properties:
+                                      key:
+                                        type: string
+                                      mode:
+                                        format: int32
+                                        type: integer
+                                      path:
+                                        type: string
+                                    required:
+                                    - key
+                                    - path
+                                    type: object
+                                  type: array
+                                optional:
+                                  type: boolean
+                                secretName:
+                                  type: string
+                              type: object
+                          required:
+                          - name
+                          type: object
+                        type: array
                     type: object
                   tls:
                     properties:
@@ -7808,6 +7964,24 @@ spec:
                                   x-kubernetes-int-or-string: true
                                 type: object
                             type: object
+                          volumeMounts:
+                            items:
+                              properties:
+                                mountPath:
+                                  type: string
+                                name:
+                                  type: string
+                                readOnly:
+                                  type: boolean
+                                subPath:
+                                  type: string
+                                subPathExpr:
+                                  type: string
+                              required:
+                              - mountPath
+                              - name
+                              type: object
+                            type: array
                           workingDir:
                             type: string
                         type: object
@@ -7824,6 +7998,40 @@ spec:
                       terminationGracePeriodSeconds:
                         format: int64
                         type: integer
+                      volumes:
+                        items:
+                          properties:
+                            name:
+                              type: string
+                            secret:
+                              properties:
+                                defaultMode:
+                                  format: int32
+                                  type: integer
+                                items:
+                                  items:
+                                    properties:
+                                      key:
+                                        type: string
+                                      mode:
+                                        format: int32
+                                        type: integer
+                                      path:
+                                        type: string
+                                    required:
+                                    - key
+                                    - path
+                                    type: object
+                                  type: array
+                                optional:
+                                  type: boolean
+                                secretName:
+                                  type: string
+                              type: object
+                          required:
+                          - name
+                          type: object
+                        type: array
                     type: object
                 required:
                 - replicas
