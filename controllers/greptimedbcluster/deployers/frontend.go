@@ -366,5 +366,36 @@ func (d *FrontendDeployer) generatePodTemplateSpec(cluster *v1alpha1.GreptimeDBC
 	podTemplateSpec.Spec.Volumes = append(podTemplateSpec.Spec.Volumes, tlsConfigVolumes...)
 	podTemplateSpec.Spec.Containers[0].VolumeMounts = append(podTemplateSpec.Spec.Containers[0].VolumeMounts, tlsConfigMounts...)
 
+	var (
+		copyFromVolumes []corev1.Volume
+		copyFromMounts  []corev1.VolumeMount
+	)
+	if len(cluster.Spec.Frontend.Template.Volumes) != 0 {
+		podTemplateSpec.Spec.Volumes = append(podTemplateSpec.Spec.Volumes, corev1.Volume{
+			Name: cluster.Spec.Frontend.Template.Volumes[0].Name,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: cluster.Spec.Frontend.Template.Volumes[0].Secret.SecretName,
+					Items: []corev1.KeyToPath{
+						{
+							Key:  cluster.Spec.Frontend.Template.Volumes[0].Secret.Items[0].Key,
+							Path: cluster.Spec.Frontend.Template.Volumes[0].Secret.Items[0].Path,
+						},
+					},
+				},
+			},
+		})
+	}
+
+	if len(podTemplateSpec.Spec.Containers[0].VolumeMounts) != 0 {
+		podTemplateSpec.Spec.Containers[0].VolumeMounts = append(podTemplateSpec.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+			Name:      cluster.Spec.Frontend.Template.MainContainer.VolumeMounts[0].Name,
+			MountPath: cluster.Spec.Frontend.Template.MainContainer.VolumeMounts[0].MountPath,
+		})
+	}
+
+	podTemplateSpec.Spec.Volumes = append(podTemplateSpec.Spec.Volumes, copyFromVolumes...)
+	podTemplateSpec.Spec.Containers[0].VolumeMounts = append(podTemplateSpec.Spec.Containers[0].VolumeMounts, copyFromMounts...)
+
 	return podTemplateSpec
 }
