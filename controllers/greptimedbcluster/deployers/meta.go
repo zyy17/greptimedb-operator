@@ -17,6 +17,7 @@ package deployers
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
 	"time"
 
@@ -114,12 +115,14 @@ func (d *MetaDeployer) Render(crdObject client.Object) ([]client.Object, error) 
 			}
 		}
 
-		if cluster.Spec.EnablePrometheusMonitor {
-			pm, err := d.generatePodMonitor(cluster)
-			if err != nil {
-				return nil, err
+		if cluster.Spec.PrometheusMonitor != nil {
+			if cluster.Spec.PrometheusMonitor.Enabled {
+				pm, err := d.generatePodMonitor(cluster)
+				if err != nil {
+					return nil, err
+				}
+				renderObjects = append(renderObjects, pm)
 			}
-			renderObjects = append(renderObjects, pm)
 		}
 	}
 
@@ -188,6 +191,11 @@ func (d *MetaDeployer) generateSvc(cluster *v1alpha1.GreptimeDBCluster) (*corev1
 					Protocol: corev1.ProtocolTCP,
 					Port:     cluster.Spec.Meta.ServicePort,
 				},
+				{
+					Name:     "http",
+					Protocol: corev1.ProtocolTCP,
+					Port:     cluster.Spec.HTTPServicePort,
+				},
 			},
 		},
 	}
@@ -236,14 +244,15 @@ func (d *MetaDeployer) generatePodMonitor(cluster *v1alpha1.GreptimeDBCluster) (
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      d.ResourceName(cluster.Name, v1alpha1.MetaComponentKind),
 			Namespace: cluster.Namespace,
+			Labels:    cluster.Spec.PrometheusMonitor.LabelsSelector,
 		},
 		Spec: monitoringv1.PodMonitorSpec{
 			PodMetricsEndpoints: []monitoringv1.PodMetricsEndpoint{
 				{
-					Path:        DefaultMetricPath,
-					Port:        DefaultMetricPortName,
-					Interval:    DefaultScapeInterval,
-					HonorLabels: true,
+					Path:        cluster.Spec.PrometheusMonitor.Path,
+					Port:        cluster.Spec.PrometheusMonitor.Port,
+					Interval:    cluster.Spec.PrometheusMonitor.Interval,
+					HonorLabels: cluster.Spec.PrometheusMonitor.HonorLabels,
 				},
 			},
 			Selector: metav1.LabelSelector{
@@ -332,12 +341,18 @@ func buildEtcdMaintenance(etcdEndpoints []string) (clientv3.Maintenance, error) 
 }
 
 func (d *MetaDeployer) buildMetaArgs(cluster *v1alpha1.GreptimeDBCluster) []string {
-	return []string{
+	args := []string{
 		"metasrv", "start",
 		"--bind-addr", fmt.Sprintf("0.0.0.0:%d", cluster.Spec.Meta.ServicePort),
 		"--server-addr", fmt.Sprintf("%s.%s:%d", d.ResourceName(cluster.Name, v1alpha1.MetaComponentKind), cluster.Namespace, cluster.Spec.Meta.ServicePort),
 		"--store-addr", cluster.Spec.Meta.EtcdEndpoints[0],
 	}
+
+	if len(cluster.Spec.Meta.Config) > 0 {
+		args = append(args, "--config-file", path.Join(DefaultConfigPath, DefaultConfigName))
+	}
+
+	return args
 }
 
 func (d *MetaDeployer) generatePodTemplateSpec(cluster *v1alpha1.GreptimeDBCluster) *corev1.PodTemplateSpec {
@@ -353,6 +368,11 @@ func (d *MetaDeployer) generatePodTemplateSpec(cluster *v1alpha1.GreptimeDBClust
 			Name:          "meta",
 			Protocol:      corev1.ProtocolTCP,
 			ContainerPort: cluster.Spec.Meta.ServicePort,
+		},
+		{
+			Name:          "http",
+			Protocol:      corev1.ProtocolTCP,
+			ContainerPort: cluster.Spec.HTTPServicePort,
 		},
 	}
 

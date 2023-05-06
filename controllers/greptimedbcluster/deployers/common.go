@@ -34,11 +34,8 @@ const (
 )
 
 var (
-	DefaultMetricPortName = "metrics"
-	DefaultMetricPath     = "/metrics"
-	DefaultScapeInterval  = "30s"
-
 	DefaultConfigPath = "/etc/greptimedb"
+	DefaultConfigName = "config.toml"
 )
 
 func UpdateStatus(ctx context.Context, input *v1alpha1.GreptimeDBCluster, kc client.Client, opts ...client.UpdateOption) error {
@@ -107,7 +104,7 @@ func (c *CommonDeployer) GenerateConfigMap(cluster *v1alpha1.GreptimeDBCluster, 
 			Namespace: cluster.Namespace,
 		},
 		Data: map[string]string{
-			"config.toml": config,
+			DefaultConfigName: config,
 		},
 	}
 

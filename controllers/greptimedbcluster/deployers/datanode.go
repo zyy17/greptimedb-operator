@@ -92,12 +92,14 @@ func (d *DatanodeDeployer) Render(crdObject client.Object) ([]client.Object, err
 			}
 		}
 
-		if cluster.Spec.EnablePrometheusMonitor {
-			pm, err := d.generatePodMonitor(cluster)
-			if err != nil {
-				return nil, err
+		if cluster.Spec.PrometheusMonitor != nil {
+			if cluster.Spec.PrometheusMonitor.Enabled {
+				pm, err := d.generatePodMonitor(cluster)
+				if err != nil {
+					return nil, err
+				}
+				renderObjects = append(renderObjects, pm)
 			}
-			renderObjects = append(renderObjects, pm)
 		}
 	}
 
@@ -283,14 +285,15 @@ func (d *DatanodeDeployer) generatePodMonitor(cluster *v1alpha1.GreptimeDBCluste
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      d.ResourceName(cluster.Name, v1alpha1.DatanodeComponentKind),
 			Namespace: cluster.Namespace,
+			Labels:    cluster.Spec.PrometheusMonitor.LabelsSelector,
 		},
 		Spec: monitoringv1.PodMonitorSpec{
 			PodMetricsEndpoints: []monitoringv1.PodMetricsEndpoint{
 				{
-					Path:        DefaultMetricPath,
-					Port:        DefaultMetricPortName,
-					Interval:    DefaultScapeInterval,
-					HonorLabels: true,
+					Path:        cluster.Spec.PrometheusMonitor.Path,
+					Port:        cluster.Spec.PrometheusMonitor.Port,
+					Interval:    cluster.Spec.PrometheusMonitor.Interval,
+					HonorLabels: cluster.Spec.PrometheusMonitor.HonorLabels,
 				},
 			},
 			Selector: metav1.LabelSelector{
@@ -414,6 +417,27 @@ func (d *DatanodeDeployer) generatePodTemplateSpec(cluster *v1alpha1.GreptimeDBC
 }
 
 func (d *DatanodeDeployer) generateInitializer(cluster *v1alpha1.GreptimeDBCluster) *corev1.Container {
+	// FIXME(zyy17): It's just a workaround, will delete in the future.
+	env := []corev1.EnvVar{
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		{
+			Name: "POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+	}
+	env = append(env, cluster.Spec.Datanode.Template.MainContainer.Env...)
+
 	initializer := &corev1.Container{
 		Name:  "greptimedb-initializer",
 		Image: cluster.Spec.Initializer.Image,
@@ -434,24 +458,7 @@ func (d *DatanodeDeployer) generateInitializer(cluster *v1alpha1.GreptimeDBClust
 			},
 		},
 		// TODO(zyy17): the datanode don't support to accept hostname.
-		Env: []corev1.EnvVar{
-			{
-				Name: "POD_IP",
-				ValueFrom: &corev1.EnvVarSource{
-					FieldRef: &corev1.ObjectFieldSelector{
-						FieldPath: "status.podIP",
-					},
-				},
-			},
-			{
-				Name: "POD_NAME",
-				ValueFrom: &corev1.EnvVarSource{
-					FieldRef: &corev1.ObjectFieldSelector{
-						FieldPath: "metadata.name",
-					},
-				},
-			},
-		},
+		Env: env,
 	}
 
 	if cluster.Spec.StorageProvider != nil {
