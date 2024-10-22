@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	kruiseappsv1beta1 "github.com/openkruise/kruise-api/apps/v1beta1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -121,6 +122,9 @@ func (b *DefaultBuilder) SetControllerAndAnnotation() Builder {
 			spec = v.Spec
 			controlled = v
 		case *greptimev1alpha1.GreptimeDBStandalone:
+			spec = v.Spec
+			controlled = v
+		case *kruiseappsv1beta1.StatefulSet:
 			spec = v.Spec
 			controlled = v
 		default:

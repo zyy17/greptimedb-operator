@@ -18,6 +18,7 @@ import (
 	"flag"
 	"os"
 
+	kruiseapi "github.com/openkruise/kruise-api"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -51,6 +52,7 @@ func init() {
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+	utilruntime.Must(kruiseapi.AddToScheme(scheme))
 
 	// +kubebuilder:scaffold:scheme
 }
