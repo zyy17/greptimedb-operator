@@ -173,6 +173,7 @@ func (c *LoggingConfig) ConfigureLogging(global *v1alpha1.LoggingSpec, component
 		c.Dir = pointer.String(spec.LogsDir)
 	}
 
-	c.Level = pointer.String(string(spec.Level))
+	// FIXME(zyy17): Workaround for support string type logging level.
+	// c.Level = pointer.String(string(spec.Level))
 	c.LogFormat = pointer.String(string(spec.Format))
 }
