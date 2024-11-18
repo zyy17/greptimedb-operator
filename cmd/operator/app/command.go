@@ -18,6 +18,7 @@ import (
 	"flag"
 	"os"
 
+	kruiseapi "github.com/openkruise/kruise-api"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -62,6 +63,9 @@ func init() {
 
 	// Add [PodMetrics](https://github.com/kubernetes/metrics/blob/master/pkg/apis/metrics/v1beta1/types.go) for fetching PodMetrics from metrics-server.
 	utilruntime.Must(podmetricsv1beta1.AddToScheme(scheme))
+
+	// Add Kruise API.
+	utilruntime.Must(kruiseapi.AddToScheme(scheme))
 
 	// +kubebuilder:scaffold:scheme
 }

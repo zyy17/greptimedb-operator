@@ -21,10 +21,12 @@ import (
 	"path"
 	"reflect"
 
+	kruiseappsv1beta1 "github.com/openkruise/kruise-api/apps/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -109,7 +111,7 @@ func (d *DatanodeDeployer) CheckAndUpdateStatus(ctx context.Context, crdObject c
 	}
 
 	var (
-		sts = new(appsv1.StatefulSet)
+		sts = new(kruiseappsv1beta1.StatefulSet)
 
 		objectKey = client.ObjectKey{
 			Namespace: cluster.Namespace,
@@ -131,7 +133,7 @@ func (d *DatanodeDeployer) CheckAndUpdateStatus(ctx context.Context, crdObject c
 		klog.Errorf("Failed to update status: %s", err)
 	}
 
-	return k8sutils.IsStatefulSetReady(sts), nil
+	return k8sutils.IsKruiseStatefulSetReady(sts), nil
 }
 
 // Apply is re-implemented for datanode to handle the maintenance mode.
@@ -162,6 +164,8 @@ func (d *DatanodeDeployer) Apply(ctx context.Context, crdObject client.Object, o
 						return err
 					}
 				}
+
+				newObject.SetResourceVersion(oldObject.GetResourceVersion())
 				if err := d.Client.Patch(ctx, newObject, client.MergeFrom(oldObject)); err != nil {
 					return err
 				}
@@ -368,22 +372,33 @@ func (b *datanodeBuilder) BuildStatefulSet() deployer.Builder {
 		return b
 	}
 
-	sts := &appsv1.StatefulSet{
+	sts := &kruiseappsv1beta1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "StatefulSet",
-			APIVersion: "apps/v1",
+			APIVersion: "apps.kruise.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      common.ResourceName(b.Cluster.Name, b.ComponentKind),
 			Namespace: b.Cluster.Namespace,
 		},
-		Spec: appsv1.StatefulSetSpec{
+		Spec: kruiseappsv1beta1.StatefulSetSpec{
 			PodManagementPolicy: appsv1.ParallelPodManagement,
 			ServiceName:         common.ResourceName(b.Cluster.Name, b.ComponentKind),
 			Replicas:            b.Cluster.Spec.Datanode.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					constant.GreptimeDBComponentName: common.ResourceName(b.Cluster.Name, b.ComponentKind),
+				},
+			},
+			UpdateStrategy: kruiseappsv1beta1.StatefulSetUpdateStrategy{
+				Type: appsv1.RollingUpdateStatefulSetStrategyType,
+				RollingUpdate: &kruiseappsv1beta1.RollingUpdateStatefulSetStrategy{
+					PodUpdatePolicy: kruiseappsv1beta1.RecreatePodUpdateStrategyType,
+					MaxUnavailable: &intstr.IntOrString{
+						Type: intstr.String,
+						// Let all pods be updated at the same time to boost the rolling update speed.
+						StrVal: "100%",
+					},
 				},
 			},
 			Template:             b.generatePodTemplateSpec(),

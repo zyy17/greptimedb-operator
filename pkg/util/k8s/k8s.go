@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"reflect"
 
+	kruiseappsv1beta1 "github.com/openkruise/kruise-api/apps/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -105,6 +106,15 @@ func IsStatefulSetReady(sts *appsv1.StatefulSet) bool {
 	}
 
 	if sts.Status.ObservedGeneration != sts.Generation {
+		return false
+	}
+
+	return sts.Status.ReadyReplicas == *sts.Spec.Replicas && sts.Status.CurrentReplicas == *sts.Spec.Replicas
+}
+
+// IsKruiseStatefulSetReady checks if the kruise statefulset is ready.
+func IsKruiseStatefulSetReady(sts *kruiseappsv1beta1.StatefulSet) bool {
+	if sts == nil {
 		return false
 	}
 
