@@ -22,9 +22,7 @@ import (
 
 	appsv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/third_party/kruise/apis/apps/v1alpha1"
 
-	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -69,10 +67,6 @@ func RegisterFieldIndexes(c cache.Cache) error {
 		if err = indexPodNodeName(c); err != nil {
 			return
 		}
-		// job owner
-		if err = indexJob(c); err != nil {
-			return
-		}
 	})
 	return err
 }
@@ -87,24 +81,5 @@ func indexPodNodeName(c cache.Cache) error {
 			return []string{}
 		}
 		return []string{pod.Spec.NodeName}
-	})
-}
-
-func indexJob(c cache.Cache) error {
-	return c.IndexField(context.TODO(), &batchv1.Job{}, IndexNameForController, func(rawObj client.Object) []string {
-		// grab the job object, extract the owner...
-		job := rawObj.(*batchv1.Job)
-		owner := metav1.GetControllerOf(job)
-		if owner == nil {
-			return nil
-		}
-
-		// ...make sure it's a AdvancedCronJob...
-		if owner.APIVersion != apiGVStr || owner.Kind != appsv1alpha1.AdvancedCronJobKind {
-			return nil
-		}
-
-		// ...and if so, return it
-		return []string{owner.Name}
 	})
 }
