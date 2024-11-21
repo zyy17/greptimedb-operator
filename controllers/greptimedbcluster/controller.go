@@ -37,6 +37,7 @@ import (
 	"github.com/GreptimeTeam/greptimedb-operator/controllers/constant"
 	"github.com/GreptimeTeam/greptimedb-operator/controllers/greptimedbcluster/deployers"
 	"github.com/GreptimeTeam/greptimedb-operator/pkg/deployer"
+	kruiseappsv1beta1 "github.com/GreptimeTeam/greptimedb-operator/third_party/kruise/apis/apps/v1beta1"
 )
 
 const (
@@ -83,6 +84,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&v1alpha1.GreptimeDBStandalone{}).
+		Owns(&kruiseappsv1beta1.StatefulSet{}).
 		Complete(r)
 }
 

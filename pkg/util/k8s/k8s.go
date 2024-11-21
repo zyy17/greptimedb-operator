@@ -26,6 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	kruiseappsv1beta1 "github.com/GreptimeTeam/greptimedb-operator/third_party/kruise/apis/apps/v1beta1"
 )
 
 // CreateObjectIfNotExist creates Kubernetes object if it does not exist, otherwise returns the existing object.
@@ -156,4 +158,13 @@ func GetSecretsData(namespace, name string, keys []string) ([][]byte, error) {
 	}
 
 	return values, nil
+}
+
+// IsKruiseStatefulSetReady checks if the kruise statefulset is ready.
+func IsKruiseStatefulSetReady(sts *kruiseappsv1beta1.StatefulSet) bool {
+	if sts == nil {
+		return false
+	}
+
+	return sts.Status.ReadyReplicas == *sts.Spec.Replicas && sts.Status.CurrentReplicas == *sts.Spec.Replicas
 }

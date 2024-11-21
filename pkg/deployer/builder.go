@@ -27,6 +27,7 @@ import (
 
 	greptimev1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"github.com/GreptimeTeam/greptimedb-operator/pkg/util"
+	kruiseappsv1beta1 "github.com/GreptimeTeam/greptimedb-operator/third_party/kruise/apis/apps/v1beta1"
 )
 
 const (
@@ -121,6 +122,9 @@ func (b *DefaultBuilder) SetControllerAndAnnotation() Builder {
 			spec = v.Spec
 			controlled = v
 		case *greptimev1alpha1.GreptimeDBStandalone:
+			spec = v.Spec
+			controlled = v
+		case *kruiseappsv1beta1.StatefulSet:
 			spec = v.Spec
 			controlled = v
 		default:
