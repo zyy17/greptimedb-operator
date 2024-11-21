@@ -17,6 +17,7 @@ package app
 import (
 	"flag"
 	"os"
+	"time"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
@@ -28,6 +29,7 @@ import (
 	"k8s.io/klog/v2/klogr"
 	podmetricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
@@ -37,6 +39,12 @@ import (
 	"github.com/GreptimeTeam/greptimedb-operator/controllers/greptimedbcluster"
 	"github.com/GreptimeTeam/greptimedb-operator/controllers/greptimedbstandalone"
 	"github.com/GreptimeTeam/greptimedb-operator/pkg/apiserver"
+
+	appsv1beta1 "github.com/GreptimeTeam/greptimedb-operator/third_party/kruise/apis/apps/v1beta1"
+	extclient "github.com/GreptimeTeam/greptimedb-operator/third_party/kruise/pkg/client"
+	"github.com/GreptimeTeam/greptimedb-operator/third_party/kruise/pkg/controller/statefulset"
+	utilclient "github.com/GreptimeTeam/greptimedb-operator/third_party/kruise/pkg/util/client"
+	"github.com/GreptimeTeam/greptimedb-operator/third_party/kruise/pkg/util/fieldindex"
 )
 
 const (
@@ -63,6 +71,10 @@ func init() {
 	// Add [PodMetrics](https://github.com/kubernetes/metrics/blob/master/pkg/apis/metrics/v1beta1/types.go) for fetching PodMetrics from metrics-server.
 	utilruntime.Must(podmetricsv1beta1.AddToScheme(scheme))
 
+	// Add Kruise's CRDs.
+	utilruntime.Must(appsv1beta1.AddToScheme(scheme))
+	utilruntime.Must(appsv1beta1.AddToScheme(clientgoscheme.Scheme))
+
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -76,6 +88,7 @@ func NewOperatorCommand() *cobra.Command {
 			ctrl.SetLogger(klogr.New())
 			setupLog := ctrl.Log.WithName("setup")
 			cfg := ctrl.GetConfigOrDie()
+			syncPeriod := time.Minute * 5
 
 			mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 				Scheme:                 scheme,
@@ -85,9 +98,26 @@ func NewOperatorCommand() *cobra.Command {
 				Metrics: metricsserver.Options{
 					BindAddress: o.MetricsAddr,
 				},
+				Cache: cache.Options{
+					SyncPeriod:        &syncPeriod,
+					DefaultNamespaces: getCacheNamespacesFromFlag(""),
+				},
+				NewCache: utilclient.NewCache,
 			})
 			if err != nil {
 				setupLog.Error(err, "unable to start manager")
+				os.Exit(1)
+			}
+
+			setupLog.Info("register field index")
+			if err := fieldindex.RegisterFieldIndexes(mgr.GetCache()); err != nil {
+				setupLog.Error(err, "failed to register field index")
+				os.Exit(1)
+			}
+
+			setupLog.Info("new clientset registry")
+			if err = extclient.NewRegistry(cfg); err != nil {
+				setupLog.Error(err, "unable to init kruise clientset and informer")
 				os.Exit(1)
 			}
 
@@ -108,6 +138,11 @@ func NewOperatorCommand() *cobra.Command {
 
 			if err := greptimedbstandalone.Setup(mgr, o); err != nil {
 				setupLog.Error(err, "unable to setup controller", "controller", "greptimedbstandalone")
+				os.Exit(1)
+			}
+
+			if err := statefulset.Add(mgr); err != nil {
+				setupLog.Error(err, "unable to setup kruise statefulset controller")
 				os.Exit(1)
 			}
 
@@ -146,4 +181,13 @@ func NewOperatorCommand() *cobra.Command {
 	command.AddCommand(version.NewVersionCommand())
 
 	return command
+}
+
+func getCacheNamespacesFromFlag(ns string) map[string]cache.Config {
+	if ns == "" {
+		return nil
+	}
+	return map[string]cache.Config{
+		ns: {},
+	}
 }

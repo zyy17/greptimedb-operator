@@ -73,13 +73,13 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: kustomize controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=greptimedb-operator-role crd:maxDescLen=0 webhook paths="./..." output:crd:artifacts:config=config/crd/resources
+	$(CONTROLLER_GEN) rbac:roleName=greptimedb-operator-role crd:maxDescLen=0 webhook paths="./apis/..." output:crd:artifacts:config=config/crd/resources
 	$(KUSTOMIZE) build config/crd > ${MANIFESTS_DIR}/crds.yaml
 	$(KUSTOMIZE) build config/default > ${MANIFESTS_DIR}/bundle.yaml
 
 .PHONY: generate
 generate: kustomize controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./apis/..."
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -128,7 +128,7 @@ kind-up: ## Create the kind cluster for developing.
 ##@ Build
 
 .PHONY: build
-build: generate fmt vet ## Build greptimedb-operator binary.
+build: generate fmt ## Build greptimedb-operator binary.
 	GO111MODULE=on CGO_ENABLED=0 go build -ldflags '${LDFLAGS}' -o bin/greptimedb-operator ./cmd/operator/main.go
 
 .PHONY: fast-build
@@ -144,7 +144,7 @@ initializer: ## Build greptimedb-initializer binary.
 	GO111MODULE=on CGO_ENABLED=0 go build -ldflags '${LDFLAGS}' -o bin/greptimedb-initializer ./cmd/initializer/main.go
 
 .PHONY: run
-run: manifests generate fmt vet ## Run a controller from your host.
+run: manifests generate fmt ## Run a controller from your host.
 	GO111MODULE=on CGO_ENABLED=0 go run -ldflags '${LDFLAGS}' ./cmd/operator/main.go
 
 .PHONY: docker-build-operator
